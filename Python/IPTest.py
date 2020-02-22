@@ -20,8 +20,8 @@ class Filter():
         self.Sin = np.array([1,self.d,0,0])
         
     #Calculates the outcoming stokes vector for given derotator angle and half-waveplate angle
-    def CalcSOut(self,ThetaDer,ThetaHwp):
-        MCI = 0.5*Mt.ComMatrix(self.d,0)
+    def CalcSOut(self,ThetaDer,ThetaHwp,DSign):
+        MCI = 0.5*Mt.ComMatrix(self.d*DSign,0)
         TDerMin = Mt.RotationMatrix(-(ThetaDer+self.DeltaDer))
         MDer = Mt.ComMatrix(self.eDer,self.RDer)
         TDerPlus = Mt.RotationMatrix(ThetaDer+self.DeltaDer)
@@ -32,15 +32,27 @@ class Filter():
 
         return np.linalg.multi_dot([MCI,TDerMin,MDer,TDerPlus,THwpMin,MHwp,THwpPlus,TCal,self.Sin])
         
-    def PlotEfficiencyDiagram(self,ThetaHwp,ThetaDerMin=0,ThetaDerMax=np.pi,N=400):
+    def CalcQOut(self,ThetaDer,ThetaOffset=0):
+        XPlus = self.CalcSOut(ThetaDer,ThetaOffset,1)[0] - self.CalcSOut(ThetaDer,ThetaOffset,-1)[0]
+        XMin = self.CalcSOut(ThetaDer,ThetaOffset+np.pi*(1/4),1)[0] - self.CalcSOut(ThetaDer,ThetaOffset+np.pi*(1/4),-1)[0]
+        IPlus = self.CalcSOut(ThetaDer,ThetaOffset,1)[0] + self.CalcSOut(ThetaDer,ThetaOffset,-1)[0]
+        IMin = self.CalcSOut(ThetaDer,ThetaOffset+np.pi*(1/4),1)[0] + self.CalcSOut(ThetaDer,ThetaOffset+np.pi*(1/4),-1)[0]
+        return 0.5*(XPlus-XMin),0.5*(XPlus-XMin)
+    
+    def CalcUOut(self,ThetaDer):
+        return self.CalcQOut(ThetaDer,(1/8)*np.pi)
+
+    def PlotEfficiencyDiagram(self,ThetaHwp,ThetaDerMin=0,ThetaDerMax=np.pi,N=100):
         
         PEfficiency = [] #Polarimetric efficiency
         PAngle = []
         ThetaDerList = np.linspace(ThetaDerMin,ThetaDerMax,N) 
         for ThetaDer in ThetaDerList:
-            SOut = self.CalcSOut(ThetaDer,ThetaHwp)
-            PEfficiency.append(Mt.LinPolDegree(SOut))
-            PAngle.append(Mt.PolAngle(SOut)-Mt.PolAngle(self.Sin))
+            Q,IQ = self.CalcQOut(ThetaDer)
+            U,IU = self.CalcUOut(ThetaDer)
+            I = 0.5*(IQ+IU)
+            PEfficiency.append(np.sqrt(Q**2+U**2))
+            #PAngle.append(Mt.PolAngle(SOut)-Mt.PolAngle(self.Sin))
         
         ThetaDerList *= 180/np.pi
         ThetaDerMin *= 180/np.pi
