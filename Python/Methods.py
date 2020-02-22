@@ -14,7 +14,7 @@ import numpy as np
 #transmitting axis in +-Q direction
 #Direction == True, --> axis in +Q direction
 #Direction == False, --> axis in -Q direction
-def CreatePolarizer(Direction):
+def Polarizer(Direction):
     #DirectionConstant is either -1 or 1
     DirectionConstant = Direction*2-1
     PolarizerMatrix = np.zeros((4,4))
@@ -27,7 +27,7 @@ def CreatePolarizer(Direction):
 #Returns matrix of an ideal retarder
 #Fast axis aligned with +Q
 #Delta is the retardance
-def CreateRetarder(Delta):
+def Retarder(Delta):
     RetarderMatrix = np.zeros((4,4))
     RetarderMatrix[0,0] = 1
     RetarderMatrix[1,1] = 1
@@ -41,7 +41,7 @@ def CreateRetarder(Delta):
 #Use this to rotate optical elements
 #Alpha is the angle of rotation from Q+ to U+
 #Element is rotated by Mrot(-a)*M*Mrot(a)
-def CreateRotationMatrix(Alpha):
+def RotationMatrix(Alpha):
     RotationMatrix = np.zeros((4,4)) 
     RotationMatrix[0,0] = 1
     RotationMatrix[3,3] = 1
@@ -58,18 +58,37 @@ def IdentityMatrix():
     IdentityMatrix[2,2] = 1
     IdentityMatrix[3,3] = 1
     return IdentityMatrix
+
+#Matrix used in Holstein et al
+#e = diattenuation
+#R = retardance    
+def ComMatrix(e,R):
+    ComMatrix = np.zeros((4,4))
+    ComMatrix[0,0] = 1
+    ComMatrix[1,1] = 1
+    ComMatrix[0,1] = e
+    ComMatrix[1,0] = e
+    ComMatrix[2,2] = np.sqrt(1-e**2)*np.cos(R)     
+    ComMatrix[3,3] = np.sqrt(1-e**2)*np.cos(R)
+    ComMatrix[3,2] = -np.sqrt(1-e**2)*np.sin(R)
+    ComMatrix[2,3] = np.sqrt(1-e**2)*np.sin(R)
+    return ComMatrix      
     
 #--/--Matrices--/--#
 
 #-----Definitions-----#
 
-#Calculates the degree of linear polarization
+#Calculates the degree of polarization
 #S is a stokes vector
-def PolarizationDegree(S):
+def PolDegree(S):
     return np.sqrt(S[1]**2+S[2]**2+S[3]**2)/S[0]
+
+#Calculates the degree of linear polarization
+def LinPolDegree(S):
+    return np.sqrt(S[1]**2+S[2]**2)/S[0]
     
 #Calculates the linear polarization angle
-def PolarizationAngle(S):
+def PolAngle(S):
     return 0.5*np.arctan(S[2]/S[1])
     
 
@@ -80,16 +99,16 @@ def PolarizationAngle(S):
 #Measures Q using single difference method
 #SField is a stokes vector as function of position(S = S())
 def MeasureQ(SField):
-    PositivePolarizer = CreatePolarizer(True)
-    NegativePolarizer = CreatePolarizer(False)
+    PositivePolarizer = Polarizer(True)
+    NegativePolarizer = Polarizer(False)
     SFieldPlus = np.dot(PositivePolarizer,SField)
     SFieldMin = np.dot(NegativePolarizer,SField)
     return (SFieldPlus-SFieldMin)[0]                    
        
 #Rotates an optical element by angle Alpha
 def ApplyRotation(OpticalMatrix,Alpha):
-    MatrixMin = CreateRotationMatrix(-Alpha)
-    MatrixPlus = CreateRotationMatrix(Alpha)
+    MatrixMin = RotationMatrix(-Alpha)
+    MatrixPlus = RotationMatrix(Alpha)
     return np.dot(np.dot(MatrixMin,OpticalMatrix),MatrixPlus)                                                            
                                                                                                                                                                                                           
 #--/--OtherMethods--/--#    

@@ -24,6 +24,7 @@ StarR0 = 90
 PlanetX = 30 #Position of planet compared to the middle
 PlanetI0 = 6
 PlanetR0 = 6
+PL = 1 #Degree of polarization used in butterfly test
 #--/--Parameters--/--#
 
 
@@ -165,9 +166,9 @@ if(False):
 
 #-----ButterflyPattern-----#
 #Simulates the butterfly pattern seen in the paper Boer et al. p7
-if(False):
+if(True):
     
-    SFieldButterfly = SimulateButterfly(Width,StarI0,1)
+    SFieldButterfly = SimulateButterfly(Width,StarI0,PL)
     plt.figure()
     plt.title("QField of butterfly pattern")
     plt.imshow(SFieldButterfly[1],cmap="gray")
