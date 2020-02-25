@@ -1,0 +1,344 @@
+
+###############################################################################
+# Important notice
+###############################################################################
+
+When publishing data reduced with IRDAP, please cite van Holstein et al.
+(2019): https://arxiv.org/abs/1909.13108.
+For data in pupil-tracking mode please additionally cite van Holstein et al.
+(2017): http://adsabs.harvard.edu/abs/2017SPIE10400E..15V.
+
+Full documentation: https://irdap.readthedocs.io
+Feedback, questions, comments: vanholstein@strw.leidenuniv.nl
+
+IRDAP Copyright (C) 2019 R.G. van Holstein
+
+###############################################################################
+# Starting IRDAP
+###############################################################################
+
+Running IRDAP version 1.2.3
+
+Date: 2020-01-12
+Time: 15:20:46
+
+###############################################################################
+# Preparing data reduction
+###############################################################################
+
+Created log file
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\VY_CMa_2020-01-12_log_5.txt.
+
+Reading configuration file
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\config.conf.
+
+Created a copy of the used configuration file
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\VY_CMa_2020-01-12_config_5.conf.
+
+Moved log file and copy of configuration file of previous reduction to
+directory C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\logs.
+
+Checking input parameters of configuration file.
+
+The input parameters have passed all checks.
+
+###############################################################################
+# Starting pre-processing
+###############################################################################
+
+Starting pre-processing of raw data.
+
+###############################################################################
+# Checking and sorting data and creating directories
+###############################################################################
+
+Reading raw directory C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\raw.
+
+Wrote files
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\VY_CMa_2020-01-12_headers.txt
+and
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\VY_CMa_2020-01-12_headers.csv
+showing overviews of the relevant header keywords for each file in the raw
+directory.
+
+As requested by the user, the following FITS-file(s) will not be used:
+File     Name
+2        SPHER.2020-01-12T08_39_05.004.fits
+
+Checking the headers of all files.
+
+WARNING, setting 'perform_adi' to False, because angular differential imaging
+cannot be performed on observations that are not taken in pupil-tracking mode.
+
+WARNING, the OBJECT-files use a NIR neutral density filter. The final data
+product will be less accurate because the neutral density filters are known to
+have a depolarizing effect that is not calibrated.
+
+WARNING, there are no FLUX-files.
+
+The FITS-headers of the raw data have passed all checks.
+
+Number of files for each file type:
+DARK(,BACKGROUND):    0
+FLAT,LAMP:            0
+OBJECT (O):           4
+SKY (S) for OBJECT:   1
+CENTER (C):           1
+FLUX (F):             0
+SKY (S) for FLUX:     0
+
+object_centering_method is 'automatic': changing it to 'center frames', because
+there are CENTER-files.
+
+The following directories already exist. Data in these directories will be
+overwritten:
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\calibration\sky
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\calibration\center
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\preprocessed
+
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\preprocessed\VY_CMa_2020-01-12_number_frames_QU.txt.
+
+###############################################################################
+# Reading static master flat and bad pixel map
+###############################################################################
+
+Read static bad pixel map and static master flat in FILT_BBF_H.
+
+###############################################################################
+# Processing SKY-files for OBJECT-files
+###############################################################################
+
+Created master sky frame out of 1 raw SKY-file(s) comprising a total of 3
+frame(s).
+
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\calibration\sky\VY_CMa_2020-01-12_master_sky.fits.
+
+###############################################################################
+# Processing CENTER-files
+###############################################################################
+
+object_center_coordinates is 'automatic': changing it to (478, 522, 1504, 512)
+because the coronagraph used is not N_ALC_Ks.
+
+Subtracting OBJECT-file closest in time from CENTER-file(s).
+Processed file 1/1: SPHER.2020-01-12T08_38_22.615.fits
+
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\calibration\center\SPHER.2020-01-12T08_38_22.615_processed.fits.
+
+Creating plot
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\calibration\center\SPHER.2020-01-12T08_38_22.615_processed.png
+showing sub-images of satellite spots with fitted coordinates.
+
+Wrote file
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\calibration\center\SPHER.2020-01-12T08_38_22.615_processed.reg
+which can be loaded as a region in DS9 (in the top bar: Region --> Load Regions)
+and shows the fitted coordinates of the satellite spots and the center.
+
+Measured center coordinates per file (pixels):
+File name                                       x_left    y_left    x_right    y_right
+SPHER.2020-01-12T08_38_22.615_processed.fits    477.07    523.46    1502.27    512.64
+
+Final center coordinates (pixels):
+x_left    y_left    x_right    y_right
+477.07    523.46    1502.27    512.64
+
+###############################################################################
+# Processing OBJECT-files
+###############################################################################
+
+Centering frames with center coordinates found from CENTER-file(s):
+(477.07, 523.46, 1502.27, 512.64)
+
+Processed file 1/4: SPHER.2020-01-12T08_40_05.884.fits
+Processed file 2/4: SPHER.2020-01-12T08_40_55.209.fits
+Processed file 3/4: SPHER.2020-01-12T08_41_44.630.fits
+Processed file 4/4: SPHER.2020-01-12T08_42_33.989.fits
+
+Creating plot(s) showing the sub-images of each frame and the center
+coordinates fitted:
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\preprocessed\VY_CMa_2020-01-12_centering_sub_images_1.png
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\preprocessed\VY_CMa_2020-01-12_centering_sub_images_2.png
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\preprocessed\VY_CMa_2020-01-12_centering_sub_images_3.png
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\preprocessed\VY_CMa_2020-01-12_centering_sub_images_4.png
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\preprocessed\VY_CMa_2020-01-12_centering_sub_images_5.png
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\preprocessed\VY_CMa_2020-01-12_centering_sub_images_6.png
+
+Saving pre-processed data so that pre-processing can be skipped the next time.
+
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\preprocessed\VY_CMa_2020-01-12_cube_left_frames.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\preprocessed\VY_CMa_2020-01-12_cube_right_frames.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\preprocessed\VY_CMa_2020-01-12_path_object_files.txt.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\preprocessed\VY_CMa_2020-01-12_file_index_object.txt.
+
+End of pre-processing.
+
+###############################################################################
+# Starting polarimetric differential imaging
+###############################################################################
+
+Skipping pre-processing and reading pre-processed data and headers.
+
+Read file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\preprocessed\VY_CMa_2020-01-12_cube_left_frames.fits.
+Read file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\preprocessed\VY_CMa_2020-01-12_cube_right_frames.fits.
+Read headers from OBJECT-files specified in
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\preprocessed\VY_CMa_2020-01-12_path_object_files.txt.
+Read indices of OBJECT-files from
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\preprocessed\VY_CMa_2020-01-12_file_index_object.txt.
+
+The following directories already exist. Data in these directories will be
+overwritten:
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\no_star_pol_subtr
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\star_pol_subtr
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\figures
+
+###############################################################################
+# Defining the annulus for star polarization and background
+###############################################################################
+
+The star polarization will be determined with a user-defined annulus or several
+user-defined annuli:
+(512.5, 512.5, 85, 245, 93, 100)
+
+The background will be determined with a star-centered annulus located far away
+from the central star:
+(512.5, 512.5, 360, 420, 0, 360)
+
+###############################################################################
+# Computing the double sum and double difference
+###############################################################################
+
+Using the standard double difference to compute the Q- and U-images.
+
+Removing the vertical band detector artefact in the double-difference Q- and
+U-images by subtracting the median of the top and bottom 60 pixels of each
+column.
+
+###############################################################################
+# Correcting images for instrumental polarization effects
+###############################################################################
+
+Computing the derotator angle for field-tracking mode.
+
+Interpolating the altitude angle using a single spline for this single night of
+observations.
+
+Creating plot showing the parallactic, altitude, HWP and derotator angles of
+the observations.
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\figures\VY_CMa_2020-01-12_header_angles.png
+
+Using model parameters corresponding to filter BBF_H.
+
+Using epsilon_UT and epsilon_M4 from after the recoating of M1 and M3 that took
+place on April 16 2017.
+
+Computing the image rotation angles for field-tracking mode to orient the
+images with North up. The true North correction used equals -1.75 deg.
+
+Rotating the images used to determine the polarization signal in annulus
+because the annuli used for the star and the background are not centered on the
+star and/or not rotationally symmetric.
+
+Fitted star polarization:
+q_star =    -4.4882 %
+u_star =    0.6707 %
+DoLP_star = 4.5380 %
+AoLP_star = 85.75 deg
+R squared of fit = 1.0000
+
+Creating plot showing the model-predicted IP, measured polarization signal and
+model-predicted IP + fitted star polarization vs. HWP cycle number.
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\figures\VY_CMa_2020-01-12_model_ip_star_pol.png
+
+Creating plot showing the model-predicted polarimetric efficiency and polarized
+transmission and crosstalk/rotation elements vs. HWP cycle number.
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\figures\VY_CMa_2020-01-12_model_poleff_crosstalk_transmission.png
+
+The polarimetric efficiency of the observations is in the range 99 - 99 %.
+
+Computing the incident Q- and U-images using least squares.
+
+Computing the incident I_Q- and I_U-images using the mean.
+
+###############################################################################
+# Subtracting the backgrounds and measuring and removing the star polarization
+###############################################################################
+
+Subtracted backgrounds in the incident I_Q-, I_U-, Q- and U-images:
+Background I_Q = 7.971
+Background I_U = 9.284
+Background Q = -0.081
+Background U = -0.026
+
+Read number of frames in Q and U from
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\preprocessed\VY_CMa_2020-01-12_number_frames_QU.txt.
+
+Measured star polarization and statistical error (taking into account photon
+noise and background noise according to Newberry (1991)) in the background-
+subtracted I_Q-, I_U-, Q- and U-images:
+q_star =    -4.4872 +/- 0.0086 %
+u_star =    0.6516 +/- 0.0055 %
+DoLP_star = 4.5343 +/- 0.0086 %
+AoLP_star = 85.87 +/- 0.04 deg
+
+The measured star polarization should be very similar to that fitted above when
+correcting the instrumental polarization effects. The difference in q, u and
+DoLP should be < 0.1% or << 0.1% depending on the noise in images.
+
+Subtracted residual backgrounds in the star-polarization-subtracted Q- and
+U-images:
+Background Q = 0.001
+Background U = -0.003
+
+###############################################################################
+# Computing the final images and writing them to FITS-files
+###############################################################################
+
+Final images are oriented with North up.
+
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\no_star_pol_subtr\VY_CMa_2020-01-12_I_Q.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\no_star_pol_subtr\VY_CMa_2020-01-12_I_U.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\no_star_pol_subtr\VY_CMa_2020-01-12_I_tot.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\no_star_pol_subtr\VY_CMa_2020-01-12_Q.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\no_star_pol_subtr\VY_CMa_2020-01-12_U.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\no_star_pol_subtr\VY_CMa_2020-01-12_Q_phi.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\no_star_pol_subtr\VY_CMa_2020-01-12_U_phi.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\no_star_pol_subtr\VY_CMa_2020-01-12_I_pol.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\no_star_pol_subtr\VY_CMa_2020-01-12_AoLP.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\no_star_pol_subtr\VY_CMa_2020-01-12_annulus_star.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\no_star_pol_subtr\VY_CMa_2020-01-12_annulus_background.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\star_pol_subtr\VY_CMa_2020-01-12_I_Q.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\star_pol_subtr\VY_CMa_2020-01-12_I_U.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\star_pol_subtr\VY_CMa_2020-01-12_I_tot.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\star_pol_subtr\VY_CMa_2020-01-12_Q_star_pol_subtr.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\star_pol_subtr\VY_CMa_2020-01-12_U_star_pol_subtr.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\star_pol_subtr\VY_CMa_2020-01-12_Q_phi_star_pol_subtr.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\star_pol_subtr\VY_CMa_2020-01-12_U_phi_star_pol_subtr.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\star_pol_subtr\VY_CMa_2020-01-12_I_pol_star_pol_subtr.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\star_pol_subtr\VY_CMa_2020-01-12_AoLP_star_pol_subtr.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\star_pol_subtr\VY_CMa_2020-01-12_annulus_star.fits.
+Wrote file C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\reduced_pdi\star_pol_subtr\VY_CMa_2020-01-12_annulus_background.fits.
+
+###############################################################################
+# Creating contrast curves for detection of extended and point sources
+###############################################################################
+
+Not creating contrast curves because the processed flux files and/or the
+corresponding CSV-file do not exist.
+
+End of polarimetric differential imaging.
+
+Time elapsed: 0 h 0 min 6 s
+
+###############################################################################
+# Important notice
+###############################################################################
+
+When publishing data reduced with IRDAP, please cite van Holstein et al.
+(2019): https://arxiv.org/abs/1909.13108.
+For data in pupil-tracking mode please additionally cite van Holstein et al.
+(2017): http://adsabs.harvard.edu/abs/2017SPIE10400E..15V.
+
+Full documentation: https://irdap.readthedocs.io
+Feedback, questions, comments: vanholstein@strw.leidenuniv.nl
+
+IRDAP Copyright (C) 2019 R.G. van Holstein

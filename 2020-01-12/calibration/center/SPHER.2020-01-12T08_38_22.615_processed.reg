@@ -1,0 +1,16 @@
+global color=green dashlist=8 3 width=1 font='helvetica 10 normal roman' select=1 highlite=1 dash=0 fixed=0 edit=1 move=0 delete=1 include=1 source=1
+physical
+circle(  477.07,   523.46, 2.5)
+line(  512.33,   558.52,   441.92,   488.52)
+circle(  512.33,   558.52, 1.0)
+circle(  441.92,   488.52, 1.0)
+line(  442.00,   559.02,   511.76,   488.29)
+circle(  442.00,   559.02, 1.0)
+circle(  511.76,   488.29, 1.0)
+circle( 1502.27,   512.64, 2.5)
+line( 1537.56,   547.75,  1467.04,   477.60)
+circle( 1537.56,   547.75, 1.0)
+circle( 1467.04,   477.60, 1.0)
+line( 1467.52,   547.83,  1537.00,   477.48)
+circle( 1467.52,   547.83, 1.0)
+circle( 1537.00,   477.48, 1.0)

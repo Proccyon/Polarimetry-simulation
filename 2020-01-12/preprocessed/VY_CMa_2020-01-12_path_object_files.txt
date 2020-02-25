@@ -1,0 +1,4 @@
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\raw\SPHER.2020-01-12T08_40_05.884.fits
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\raw\SPHER.2020-01-12T08_40_55.209.fits
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\raw\SPHER.2020-01-12T08_41_44.630.fits
+C:\Users\Rob\Documents\PhD\Data\VY_CMa_2020-01-12\raw\SPHER.2020-01-12T08_42_33.989.fits
