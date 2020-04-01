@@ -38,6 +38,13 @@ def ReadCalibrationFile(Prefix,NumberList):
 #Rotates images and splits them into a left and right part
 def SplitCalibrationImages(ImageList,ImageAngle,LeftX,RightX,BottomY,TopY,MiddleX,PixelOffset):
     RotatedImageList = ndimage.rotate(ImageList,ImageAngle,reshape=False,axes=(2,3))
+
+    plt.figure()
+    plt.imshow(RotatedImageList[0][0],vmin=500,vmax=1.5E3,cmap="gist_gray")
+    plt.xlabel("x(pixels)")
+    plt.ylabel("y(pixels)")
+    plt.colorbar()
+
     ImageListL = RotatedImageList[:,:,BottomY+PixelOffset:TopY-PixelOffset,LeftX+PixelOffset:MiddleX-PixelOffset]
     ImageListR = RotatedImageList[:,:,BottomY+PixelOffset:TopY-PixelOffset,MiddleX+PixelOffset:RightX-PixelOffset]
     return ImageListL,ImageListR
@@ -88,7 +95,7 @@ def GetRotations(RotationDateList,RotationTimeList,RotationImrList,RotationHwpLi
 
     return np.array(ImageImrList),np.array(ImageHwpList),np.array(BadImageList)
 
-def FindDoubleDifference(HwpPlusTarget,HwpMinTarget,TotalHwpList,TotalImrList,ImageListL,ImageListR):
+def FindDoubleDifference(HwpPlusTarget,HwpMinTarget,TotalHwpList,TotalImrList,ImageListL,ImageListR,LambdaNumber):
 
     ImrList = []
     DoubleDifferenceList = []
@@ -105,12 +112,12 @@ def FindDoubleDifference(HwpPlusTarget,HwpMinTarget,TotalHwpList,TotalImrList,Im
                     PlusSum = ImageListL[i]+ImageListR[i]
                     MinSum = ImageListL[j]+ImageListR[j]
                     DDImage = (PlusDifference - MinDifference) / (PlusSum+MinSum)
-                    DoubleDifference = np.mean(DDImage)
+                    DoubleDifference = np.mean(DDImage[LambdaNumber])
                     DoubleDifferenceList.append(DoubleDifference)
 
     return DoubleDifferenceList,ImrList
 
-def PlotDoubleDifference(HwpTargetList,TotalHwpList,TotalImrList,ImageListL,ImageListR,ColorList,Title):
+def PlotDoubleDifference(HwpTargetList,TotalHwpList,TotalImrList,ImageListL,ImageListR,ColorList,Title,LambdaList,LambdaNumber):
 
     #BB_H = SCExAO.BB_H_a #Matrix model
     #FitDerList = np.linspace(-0.1*np.pi,0.6*np.pi,200)
@@ -121,8 +128,8 @@ def PlotDoubleDifference(HwpTargetList,TotalHwpList,TotalImrList,ImageListL,Imag
     plt.xlim(left=43,right=129.50)
     plt.ylim(bottom=-100,top=100)
 
-    plt.title(Title)
-    plt.xlabel("Imr angle (degree)")
+    plt.title(Title+"(Lambda="+str(int(LambdaList[0][LambdaNumber]))+"nm)")
+    plt.xlabel("IMR angle (degree)")
     plt.ylabel("Normalized Stokes parameter (%)")
 
     plt.axhline(y=0,color="black")
@@ -134,7 +141,7 @@ def PlotDoubleDifference(HwpTargetList,TotalHwpList,TotalImrList,ImageListL,Imag
         HwpPlusTarget = HwpTarget[0]
         HwpMinTarget = HwpTarget[1]
             
-        DDList,ImrList = FindDoubleDifference(HwpPlusTarget,HwpMinTarget,TotalHwpList,TotalImrList,ImageListL,ImageListR)
+        DDList,ImrList = FindDoubleDifference(HwpPlusTarget,HwpMinTarget,TotalHwpList,TotalImrList,ImageListL,ImageListR,LambdaNumber)
 
         plt.scatter(ImrList,np.array(DDList)*100,label="HwpPlus = "+str(HwpPlusTarget),zorder=100,color=ColorList[i],s=18,edgecolors="black")
 
@@ -151,6 +158,8 @@ def PlotDoubleDifference(HwpTargetList,TotalHwpList,TotalImrList,ImageListL,Imag
 
     plt.grid(linestyle="--")
     plt.legend(fontsize=8)
+
+    plt.figure()
 
 #--/--Functions--/--#
 
@@ -178,6 +187,8 @@ MaxTimeDifference = 5*60 #Max time difference between hwp,imr angle switch and i
 HwpTargetList = [(0,45),(11.25,56.25),(22.5,67.5),(33.75,78.75)]
 ColorList = ["blue","lightblue","red","orange"]
 
+LambdaNumber = 0
+
 #--/--Parameters--/--#
 
 #-----Main-----#
@@ -201,15 +212,35 @@ UnpolImrList,UnpolHwpList,UnpolBadImageList = GetRotations(RotationDateList,Rota
 UnpolImageList = UnpolImageList[UnpolBadImageList==False]
 UnpolLambdaList = UnpolLambdaList[UnpolBadImageList==False]
 
+#plt.figure()
+#plt.imshow(PolImageList[0][0],vmin=500,vmax=1.5E3,cmap="gist_gray")
+#plt.xlabel("x(pixels)")
+#plt.ylabel("y(pixels)")
+#plt.colorbar()
+
 print("#-----SplitPolImages-----#")
 PolImageListL,PolImageListR = SplitCalibrationImages(PolImageList,ImageAngle,LeftX,RightX,BottomY,TopY,MiddleX,PixelOffset)
 
-print("#-----SplitUnpolImages-----#")
-UnpolImageListL,UnpolImageListR = SplitCalibrationImages(UnpolImageList,ImageAngle,LeftX,RightX,BottomY,TopY,MiddleX,PixelOffset)
+#plt.figure()
+#plt.imshow(PolImageListL[0][0],vmin=500,vmax=1.5E3,cmap="gist_gray")
+#plt.xlabel("x(pixels)")
+#plt.ylabel("y(pixels)")
+#plt.colorbar()
 
-print("#-----PlotDoubleDifference-----#")
-print(PolHwpList)
-PlotDoubleDifference(HwpTargetList,PolHwpList,PolImrList,PolImageListL,PolImageListR,ColorList,"Stokes parameters for polarized calibration data(all wavelengths)")
+#plt.figure()
+#plt.imshow(PolImageListR[0][0],vmin=500,vmax=1.5E3,cmap="gist_gray")
+#plt.xlabel("x(pixels)")
+#plt.ylabel("y(pixels)")
+#plt.colorbar()
+
+#print("#-----SplitUnpolImages-----#")
+#UnpolImageListL,UnpolImageListR = SplitCalibrationImages(UnpolImageList,ImageAngle,LeftX,RightX,BottomY,TopY,MiddleX,PixelOffset)
+
+#print("#-----PlotPolDoubleDifference-----#")
+#PlotDoubleDifference(HwpTargetList,PolHwpList,PolImrList,PolImageListL,PolImageListR,ColorList,"Stokes parameters for polarized calibration data",PolLambdaList,LambdaNumber)
+
+#print("#-----PlotUnpolDoubleDifference-----#")
+#PlotDoubleDifference(HwpTargetList,UnpolHwpList,UnpolImrList,UnpolImageListL,UnpolImageListR,ColorList,"Stokes parameters for unpolarized calibration data",PolLambdaList,LambdaNumber)
 
 plt.show()
 #--/--Main--/--#
