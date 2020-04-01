@@ -17,6 +17,17 @@ warnings.filterwarnings('ignore', category=UserWarning, append=True)
 def CircleMean(Theta1,Theta2):
     return np.arctan( (np.sin(Theta1)+np.sin(Theta2)) / (np.cos(Theta1)+np.cos(Theta2)) )
     
+def CreateAperture(Shape,x0,y0,R):
+    Aperture = np.zeros(Shape)
+    for y in range(Shape[0]):
+        for x in range(Shape[1]):
+            dr = np.sqrt((x-x0)**2 + (y-y0)**2)
+            if(dr<=R):
+                Aperture[y,x]=1
+    
+    return Aperture
+
+
 #--/--Functions--/--#
 
 #-----IrdisCalibrationClass-----#
@@ -30,7 +41,7 @@ class IrdisCalibration:
         self.DarkFileS = DarkFileS
         self.FlatFile = FlatFile
     
-    def RunCalibration(self):
+    def RunCalibration(self,UseAperture=True,ApertureSize=150):
 
         print("Reading files...")
         #Get the images and header parameters of calibration images
@@ -60,13 +71,18 @@ class IrdisCalibration:
 
         print("Creating double difference images...")
         #Creates the double difference images
-        HwpTargetList = [(0,45),(11.25,56.25),(22.5,67.5),(33.75,78.75)]
-        self.PolDDImageArray,self.PolDSImageArray,self.PolDerList = self.CreateDoubleDifferenceImges(HwpTargetList,self.PolHwpListTotal,self.PolDerListTotal,self.PolImageListL,self.PolImageListR)
-        self.UnpolDDImageArray,self.UnpolDSImageArray,self.UnpolDerList = self.CreateDoubleDifferenceImges(HwpTargetList,self.UnpolHwpListTotal,self.UnpolDerListTotal,self.UnpolImageListL,self.UnpolImageListR)
+        self.HwpTargetList = [(0,45),(11.25,56.25),(22.5,67.5),(33.75,78.75)]
+        self.PolDDImageArray,self.PolDSImageArray,self.PolDerList = self.CreateDoubleDifferenceImges(self.HwpTargetList,self.PolHwpListTotal,self.PolDerListTotal,self.PolImageListL,self.PolImageListR)
+        self.UnpolDDImageArray,self.UnpolDSImageArray,self.UnpolDerList = self.CreateDoubleDifferenceImges(self.HwpTargetList,self.UnpolHwpListTotal,self.UnpolDerListTotal,self.UnpolImageListL,self.UnpolImageListR)
 
+        print("Finding parameter values...")
         #Gets double difference values using aperatures
-        self.PolDDArray = self.GetDoubleDifferenceValue(self.PolDDImageArray,self.PolDSImageArray)
-        self.UnpolDDArray = self.GetDoubleDifferenceValue(self.UnpolDDImageArray,self.UnpolDSImageArray)
+        self.PolParamValueArray = self.GetDoubleDifferenceValue(self.PolDDImageArray,self.PolDSImageArray,UseAperture,ApertureSize)
+        self.UnpolParamValueArray = self.GetDoubleDifferenceValue(self.UnpolDDImageArray,self.UnpolDSImageArray,UseAperture,ApertureSize)
+
+        print("Calculating fitted curve...")
+        self.PolParamFitArray,self.PolFitDerList = self.FindFittedStokesParameters(SCExAO.BB_H_a,self.HwpTargetList,True)
+        self.UnpolParamFitArray,self.UnpolFitDerList = self.FindFittedStokesParameters(SCExAO.BB_H_a,self.HwpTargetList,False)
 
     #---ReadFunctions---#
     def ReadFile(self,File):    
@@ -130,12 +146,12 @@ class IrdisCalibration:
                             if(ThetaDer < 0):
                                 ThetaDer += 180
                             DerList.append(ThetaDer)
-                            PlusDifference = ImageListL[i]-ImageListR[i]
-                            MinDifference = ImageListL[j]-ImageListR[j]
-                            PlusSum = ImageListL[i]+ImageListR[i]
-                            MinSum = ImageListL[j]+ImageListR[j]
-                            DDImage = PlusDifference - MinDifference 
-                            DSImage = PlusSum + MinSum
+                            PlusDifference = ImageListL[j]-ImageListR[j]
+                            MinDifference = ImageListL[i]-ImageListR[i]
+                            PlusSum = ImageListL[j]+ImageListR[j]
+                            MinSum = ImageListL[i]+ImageListR[i]
+                            DDImage = 0.5*(PlusDifference - MinDifference) 
+                            DSImage = 0.5*(PlusSum + MinSum)
                             DDImageList.append(DDImage)
                             DSImageList.append(DSImage)
                             break
@@ -147,11 +163,39 @@ class IrdisCalibration:
 
 
     #Uses aperatures to get a single value for the double differance
-    def GetDoubleDifferenceValue(self,DDImageArray,DSImageArray):
-        return np.mean(DDImageArray,axis=0)/np.mean(DSImageArray,axis=0)
+    def GetDoubleDifferenceValue(self,DDImageArray,DSImageArray,UseAperture=True,ApertureSize=150):
+        if(UseAperture): #This only works for the mean, not for median
+            Shape = DDImageArray[0][0].shape
+            Aperture = CreateAperture(Shape,0.5*Shape[1],0.5*Shape[0],ApertureSize)
+            return np.mean(Aperture*DDImageArray,axis=(2,3))/np.mean(Aperture*DSImageArray,axis=(2,3))
+        
+        else:
+            return np.mean(DDImageArray,axis=(2,3))/np.mean(DSImageArray,axis=(2,3))
+
+
+    def FindFittedStokesParameters(self,Model,HwpTargetList,UsePolarizer):
+
+        FitDerList = np.linspace(-2,103.25*np.pi/180,200)    
+        ParmFitValueArray = []
+        S_In = np.array([1,0,0,0])
+
+        for HwpTarget in HwpTargetList:
+            HwpPlusTarget = HwpTarget[0]*np.pi/180
+            HwpMinTarget = HwpTarget[1]*np.pi/180
+            ParmFitValueList = []
+            for FitDer in FitDerList:
+                X_Matrix,I_Matrix = Model.ParameterMatrix(HwpPlusTarget,HwpMinTarget,FitDer,0,UsePolarizer,True)
+                X_Out = np.dot(X_Matrix,S_In)[0]
+                I_Out = np.dot(I_Matrix,S_In)[0]
+                X_Norm = X_Out/I_Out
+                ParmFitValueList.append(X_Norm)
+        
+            ParmFitValueArray.append(np.array(ParmFitValueList))
+        
+        return np.array(ParmFitValueArray),FitDerList
+
 
     #-/-EssentialFunctions-/-#
-
 
     #---PlotFunctions---#
     #Shows one of the raw images. 
@@ -168,7 +212,6 @@ class IrdisCalibration:
             plt.title("Raw unpolarized calibration image")
 
         plt.colorbar()
-        plt.show()
 
     #Shows one of the raw images. 
     def ShowCalibratedImage(self,ImageNumber,FromPolarizedImages=True):
@@ -184,7 +227,6 @@ class IrdisCalibration:
             plt.title("Dark,Flat calibrated unpolarized calibration image")
 
         plt.colorbar()
-        plt.show()
             
     #Shows one of the raw images. 
     def ShowLeftRightImage(self,ImageNumber,FromPolarizedImages=True):
@@ -220,7 +262,6 @@ class IrdisCalibration:
             plt.imshow(self.UnpolImageListR[ImageNumber],vmin=4.8E3,vmax=5.2E3)
             plt.colorbar()
 
-        plt.show()
     
         #Shows one of the raw images. 
     def ShowDoubleDifferenceImage(self,ImageNumber,HwpNumber,FromPolarizedImages=True,DoubleSum=False):
@@ -232,7 +273,7 @@ class IrdisCalibration:
         if(DoubleSum):
             if(FromPolarizedImages):
                 PlottedImage = self.PolDSImageArray[HwpNumber][ImageNumber]
-                plt.title("Polarized double sum image",vmin=npmean)
+                plt.title("Polarized double sum image")
             else:
                 PlottedImage = self.UnpolDSImageArray[HwpNumber][ImageNumber]
                 plt.title("Unpolarized double sum image")
@@ -246,7 +287,48 @@ class IrdisCalibration:
 
         plt.imshow(PlottedImage,vmin=np.mean(PlottedImage)/1.2,vmax=np.mean(PlottedImage)*1.2)
         plt.colorbar()
-        plt.show()
+
+
+    def PlotStokesParameters(self,ColorList,FromPolarizedImages=True):
+        
+        plt.figure()
+        plt.xlabel("Derotator angle")
+        plt.ylabel("Normalized Stokes parameter (%)")
+        plt.xticks(np.arange(-11.25,112.5,11.25))
+
+        if(FromPolarizedImages):      
+            plt.title("Stokes parameter vs derotator angle (polarizer)")           
+            plt.yticks(np.arange(-120,120,20))
+            plt.xlim(left=-1,right=91)
+            plt.ylim(bottom=-110,top=110)
+
+            
+            for i in range(len(self.HwpTargetList)):
+                #Plot data
+                HwpPlusTarget = self.HwpTargetList[i][0]
+                plt.scatter(self.PolDerList,100*self.PolParamValueArray[i],label="HwpPlus = "+str(HwpPlusTarget),zorder=100,color=ColorList[i],s=18,edgecolors="black")
+
+                #Plot fitted curve
+                plt.plot(self.PolFitDerList*180/np.pi,self.PolParamFitArray[i]*100,color=ColorList[i])
+
+        else:
+            plt.title("Stokes parameter vs derotator angle (no polarizer)")           
+            plt.yticks(np.arange(-1.2,1.2,0.2))
+            plt.xlim(left=-1,right=102.25)
+            plt.ylim(bottom=-1.1,top=1.1)
+
+            
+            for i in range(len(self.HwpTargetList)):
+                #Plot data
+                HwpPlusTarget = self.HwpTargetList[i][0]
+                plt.scatter(self.UnpolDerList,100*self.UnpolParamValueArray[i],label="HwpPlus = "+str(HwpPlusTarget),zorder=100,color=ColorList[i],s=18,edgecolors="black")
+
+                #Plot fitted curve
+                plt.plot(self.UnpolFitDerList*180/np.pi,self.UnpolParamFitArray[i]*100,color=ColorList[i])
+
+        plt.grid(linestyle="--")
+        plt.legend(fontsize=8)
+
 
     #---PlotFunctions---#
 
@@ -256,15 +338,16 @@ class IrdisCalibration:
 Prefix = "C:/Users/Gebruiker/Desktop/BRP/CalibrationData/Internal Source/raw/irdis_internal_source_h/"
 FileType=".fits"
 
-PrefixPol = Prefix+"SPHERE_IRDIS_TEC165_0"
-PrefixUnpol = Prefix+"SPHERE_IRDIS_TEC227_0"
+PrefixUnpol = Prefix+"SPHERE_IRDIS_TEC165_0"
+PrefixPol = Prefix+"SPHERE_IRDIS_TEC227_0"
 DarkNameF = Prefix+"SPHERE_IRDIS_CAL_DARK164_0002"+FileType
 DarkNameS = Prefix+"SPHERE_IRDIS_CAL_DARK164_0003"+FileType
 FlatName = Prefix+"SPHERE_IRDIS_CAL_FLAT165_0002"+FileType
 
-Altitude = (1/8)*np.pi
-NumberListPol= np.arange(368,568,2)
-NumberListUnpol = np.arange(400,664,2)
+NumberListUnpol= np.arange(368,568,2)
+NumberListPol = np.arange(400,664,2)
+
+ApertureRadius = 30
 
 #--/--Parameters--/--#
 
@@ -288,7 +371,10 @@ for Number in NumberListUnpol:
 #-----Main-----#
 
 IrdisCalibrationObject = IrdisCalibration(PolFileList,UnpolFileList,DarkFileF,DarkFileS,FlatFile)
-IrdisCalibrationObject.RunCalibration()
-#IrdisCalibrationObject.ShowDoubleDifferenceImage(0,0,False,False)
+IrdisCalibrationObject.RunCalibration(True,ApertureRadius)
+IrdisCalibrationObject.PlotStokesParameters(["blue","lightblue","red","orange"],True)
+IrdisCalibrationObject.PlotStokesParameters(["blue","lightblue","red","orange"],False)
+
+plt.show()
 #--/--Main--/--#
 
