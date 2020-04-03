@@ -40,6 +40,10 @@ class IrdisCalibration:
         self.DarkFileF = DarkFileF
         self.DarkFileS = DarkFileS
         self.FlatFile = FlatFile
+
+        self.HwpTargetList = [(0,45),(11.25,56.25),(22.5,67.5),(33.75,78.75)]
+        self.ApertureXList = [250,450,650,450,450,250,250,650,650]
+        self.ApertureYList = [500,500,500,700,300,300,700,300,700]
     
     def RunCalibration(self,UseAperture=True,ApertureSize=150):
 
@@ -70,8 +74,7 @@ class IrdisCalibration:
         self.UnpolImageListL,self.UnpolImageListR = self.SplitImageList(self.UnpolImageList)
 
         print("Creating double difference images...")
-        #Creates the double difference images
-        self.HwpTargetList = [(0,45),(11.25,56.25),(22.5,67.5),(33.75,78.75)]
+        #Creates the double difference images    
         self.PolDDImageArray,self.PolDSImageArray,self.PolDerList = self.CreateDoubleDifferenceImges(self.HwpTargetList,self.PolHwpListTotal,self.PolDerListTotal,self.PolImageListL,self.PolImageListR)
         self.UnpolDDImageArray,self.UnpolDSImageArray,self.UnpolDerList = self.CreateDoubleDifferenceImges(self.HwpTargetList,self.UnpolHwpListTotal,self.UnpolDerListTotal,self.UnpolImageListL,self.UnpolImageListR)
 
@@ -167,7 +170,7 @@ class IrdisCalibration:
         if(UseAperture): #This only works for the mean, not for median
             Shape = DDImageArray[0][0].shape
             Aperture = CreateAperture(Shape,0.5*Shape[1],0.5*Shape[0],ApertureSize)
-            return np.mean(Aperture*DDImageArray,axis=(2,3))/np.mean(Aperture*DSImageArray,axis=(2,3))
+            return np.median(DDImageArray[:,:,Aperture==1],axis=2)/np.median(DSImageArray[:,:,Aperture==1],axis=2)
         
         else:
             return np.mean(DDImageArray,axis=(2,3))/np.mean(DSImageArray,axis=(2,3))
@@ -372,8 +375,15 @@ for Number in NumberListUnpol:
 
 IrdisCalibrationObject = IrdisCalibration(PolFileList,UnpolFileList,DarkFileF,DarkFileS,FlatFile)
 IrdisCalibrationObject.RunCalibration(True,ApertureRadius)
-IrdisCalibrationObject.PlotStokesParameters(["blue","lightblue","red","orange"],True)
-IrdisCalibrationObject.PlotStokesParameters(["blue","lightblue","red","orange"],False)
+
+XList = [250,450,650,450,450,250,250,650,650]
+YList = [500,500,500,700,300,300,700,300,700]
+
+for i in range(0,10):
+    IrdisCalibrationObject.ShowDoubleDifferenceImage(i,2,False,False)
+    plt.scatter(XList,YList,color="red",s=7)
+#IrdisCalibrationObject.PlotStokesParameters(["blue","lightblue","red","orange"],True)
+#IrdisCalibrationObject.PlotStokesParameters(["blue","lightblue","red","orange"],False)
 
 plt.show()
 #--/--Main--/--#
