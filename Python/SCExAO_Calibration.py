@@ -11,164 +11,231 @@ import SCExAO
 
 #--/--Imports--/--#
 
+#-----Class-----#
+
+class SCExAO_Calibration():
+
+    def __init__(self,PolFileList,RotationFile):
+        self.PolFileList = PolFileList
+        self.RotationFile = RotationFile
+
+        self.ImageAngle = 27 #Angle with which the images seem to be rotated
+        self.LeftX = 34 #Position in pixels of border on the left
+        self.RightX = 166 #position in pixels of border on the right
+        self.BottomY = 34 #Position in pixels of border on the top
+        self.TopY = 166 #Position in pixels of border on the left
+        self.MiddleX = 100 #Position in pixels of line that separates measurements
+        self.PixelOffset = 5
+
+        self.MaxTimeDifference = 5*60
+
+        self.HwpTargetList = [(0,45),(11.25,56.25),(22.5,67.5),(33.75,78.75)]
+
+
+    def RunCalibration(self):
+        print("Reading files...")
+        self.PolImageList,self.PolLambdaList,self.PolTimeList = ReadCalibrationFiles(self.PolFileList)
+        self.RotationTimeList,self.RotationImrList,self.RotationHwpList = ReadRotationFile(self.RotationFile)
+        
+        #print(self.PolTimeList/timedelta(seconds=1))
+
+        #plt.scatter(range(len(self.PolTimeList)),self.PolTimeList/timedelta(minutes=1)-18*24*60,s=2)
+        #plt.scatter(range(len(self.RotationTimeList)),self.RotationTimeList/timedelta(minutes=1)-18*24*60,s=2)
+        #plt.axhline(y=24*60)
+        #plt.show()
+
+        print("Finding Imr and Hwp angles of calibration images...")
+        self.PolImrList,self.PolHwpList,self.PolBadImageList = self.GetRotations(self.PolTimeList)
+        self.PolImageList = self.PolImageList[self.PolBadImageList==False]
+        self.PolLambdaList = self.PolLambdaList[self.PolBadImageList==False]
+
+        print("Splitting calibration images...")
+        self.PolImageListL,self.PolImageListR = self.SplitCalibrationImages(self.PolImageList)
+
+        print("Creating double difference images...")
+        self.PolDDImageArray,self.PolDSImageArray,self.PolImrArray = self.CreateHwpDoubleDifferenceImges(self.PolHwpList,self.PolImrList,self.PolImageListL,self.PolImageListR)
+        
+        print("Getting double difference value...")
+        self.PolParamValueArray = self.GetDoubleDifferenceValue(self.PolDDImageArray,self.PolDSImageArray)
+        
+
+        #print(self.PolDDImageArray[0].shape)
+        #print(self.PolDDImageArray[1].shape)
+        #print(self.PolDDImageArray[2].shape)
+        #print(self.PolDDImageArray[3].shape)
+        #print(self.PolImrArray)
+
+        #self.PlotParamValues(self.PolParamValueArray,0)
+
+    #Rotates images and splits them into a left and right part
+    def SplitCalibrationImages(self,ImageList):
+        RotatedImageList = ndimage.rotate(ImageList,self.ImageAngle,reshape=False,axes=(2,3))
+
+        ImageListL = RotatedImageList[:,:,self.BottomY+self.PixelOffset:self.TopY-self.PixelOffset,self.LeftX+self.PixelOffset:self.MiddleX-self.PixelOffset]
+        ImageListR = RotatedImageList[:,:,self.BottomY+self.PixelOffset:self.TopY-self.PixelOffset,self.MiddleX+self.PixelOffset:self.RightX-self.PixelOffset]
+        return ImageListL,ImageListR
+
+    #Finds the Imr,Hwp angles per image from the list of rotations over time
+    #BadImageList is a boolean array indicating images with invalid time
+    def GetRotations(self,ImageTimeList):
+
+        ImageImrList = [] #ImrAngle for each calibration image
+        ImageHwpList = [] #HwpAngle for each calibration image
+        BadImageList = [] #Boolean list of images without correct Imr,Hwp angles
+        for i in range(len(ImageTimeList)):
+            ImageTime = ImageTimeList[i]
+
+            DeltaList = (self.RotationTimeList-ImageTime) / timedelta(seconds=1) #List of time differences in seconds
+
+            TargetIndex = ArgMaxNegative(DeltaList)
+            if(np.abs(DeltaList[TargetIndex]) <= self.MaxTimeDifference):
+                BadImageList.append(False)
+                ImageImrList.append(self.RotationImrList[TargetIndex])
+                ImageHwpList.append(self.RotationHwpList[TargetIndex])
+            else:
+                BadImageList.append(True)
+
+        return np.array(ImageImrList),np.array(ImageHwpList),np.array(BadImageList)
+
+        #Creates double difference and sum images by combining images differing 45 degrees hwp angle
+    def CreateHwpDoubleDifferenceImges(self,TotalHwpList,TotalImrList,ImageListL,ImageListR):
+
+        DDImageArray = []
+        DSImageArray = []
+        ImrArray = []
+        for HwpTarget in self.HwpTargetList:
+            HwpPlusTarget = HwpTarget[0]
+            HwpMinTarget = HwpTarget[1]
+            ImrList = []
+            DDImageList = []
+            DSImageList = []
+            for i in range(len(TotalHwpList)):
+                if(TotalHwpList[i] == HwpMinTarget):
+                    for j in range(len(TotalHwpList)):
+                        if(TotalHwpList[j] == HwpPlusTarget and TotalImrList[i] == TotalImrList[j]):
+                            ThetaImr = TotalImrList[i]
+                            if(ThetaImr < 0):
+                                ThetaImr += 180
+                            ImrList.append(ThetaImr)
+                            PlusDifference = ImageListL[j]-ImageListR[j]
+                            MinDifference = ImageListL[i]-ImageListR[i]
+                            PlusSum = ImageListL[j]+ImageListR[j]
+                            MinSum = ImageListL[i]+ImageListR[i]
+                            DDImage = 0.5*(PlusDifference - MinDifference) 
+                            DSImage = 0.5*(PlusSum + MinSum)
+                            DDImageList.append(DDImage)
+                            DSImageList.append(DSImage)
+                            break
+                            
+            DDImageArray.append(np.array(DDImageList))
+            DSImageArray.append(np.array(DSImageList))
+            ImrArray.append(np.array(ImrList))
+
+        return np.array(DDImageArray),np.array(DSImageArray),np.array(ImrArray)
+
+    #Uses aperatures to get a single value for the double differance
+    def GetDoubleDifferenceValue(self,DDImageArray,DSImageArray):
+        ParamValueArray = []
+        for i in range(len(DDImageArray)):
+            ParamValueArray.append(np.mean(DDImageArray[i],axis=(1,2)) / np.mean(DSImageArray[i],axis=(1,2)))
+        
+        return np.array(ParamValueArray)
+        #for i in range(len(self.ApertureXList)):
+        #    ApertureX = self.ApertureXList[i]
+        #    ApertureY = self.ApertureYList[i] 
+        #    Shape = DDImageArray[0][0].shape
+        #    Aperture = CreateAperture(Shape,ApertureX,ApertureY,self.ApertureSize)
+        #    ParamValue = np.median(DDImageArray[:,:,Aperture==1],axis=2) / np.median(DSImageArray[:,:,Aperture==1],axis=2)
+        #    ParamValueArray.append(ParamValue)
+
+        #return np.array(ParamValueArray)
+
+    def PlotParamValues(self,ParamValueArray,LambdaNumber):
+        plt.figure()
+        plt.ylabel("Normalized Stokes parameter (%)")
+        plt.xticks(np.arange(45,112.5,7.5))
+
+      
+        plt.title("Stokes parameter vs Imr angle (polarizer)")           
+        plt.xlabel("Imr angle(degrees)")
+        plt.yticks(np.arange(-120,120,20))
+        plt.xlim(left=44,right=113.5)
+        plt.ylim(bottom=-100,top=100)
+        plt.axhline(y=0,color="black")
+
+        for i in range(len(self.HwpTargetList)):
+            #Plot data
+            HwpPlusTarget = self.HwpTargetList[i][0]
+            ParamValueList = 100*self.PolParamValueArray[i][:,LambdaNumber]
+            plt.scatter(self.PolImrArray[i],ParamValueList,label="HwpPlus = "+str(HwpPlusTarget),zorder=100,color=ColorList[i],s=18,edgecolors="black")
+        
+        plt.grid(linestyle="--")
+        plt.legend(fontsize=8)
+
+
+    
+#--/--Class--/--#
+
 #-----Functions-----#
 
+#---ReadInFunctions---#
+
 #Gets images and header data from fits files
-def ReadCalibrationFile(Prefix,NumberList):
+def ReadCalibrationFiles(FileList):
     LambdaList = []
     ImageList = []
-    DateList = []
     TimeList = []
-    for Number in NumberList:
-        Path = Prefix + str(Number) + "_cube.fits"
-        HduList = fits.open(Path)
-        Header = HduList[0].header
-        Image = HduList[1].data
-        RawHeader = HduList[3].header #Not currently used, not sure what to do with this
+    for File in FileList:
+        Header = File[0].header
+        Image = File[1].data
+        RawHeader = File[3].header #Not currently used, not sure what to do with this
         Lambda = Header['lam_min']*np.exp(np.arange(Image.shape[0])*Header['dloglam']) #This gets the wavelength...
         LambdaList.append(Lambda)
         ImageList.append(Image)
-        DateList.append(Header["UTC-Date"])
+        Days = float(Header["UTC-Date"][-2:])
 
         TimeRow = Header["UTC-Time"].split(":")
-        TimeList.append(timedelta(hours=float(TimeRow[0]),minutes=float(TimeRow[1]),seconds=float(TimeRow[2])))
+        #Converts time to the timedelta data type
+        TimeList.append(timedelta(hours=float(TimeRow[0]),minutes=float(TimeRow[1]),seconds=float(TimeRow[2]),days=Days))
     
-    return np.array(ImageList),np.array(LambdaList),np.array(DateList),np.array(TimeList)
-
-#Rotates images and splits them into a left and right part
-def SplitCalibrationImages(ImageList,ImageAngle,LeftX,RightX,BottomY,TopY,MiddleX,PixelOffset):
-    RotatedImageList = ndimage.rotate(ImageList,ImageAngle,reshape=False,axes=(2,3))
-
-    plt.figure()
-    plt.imshow(RotatedImageList[0][0],vmin=500,vmax=1.5E3,cmap="gist_gray")
-    plt.xlabel("x(pixels)")
-    plt.ylabel("y(pixels)")
-    plt.colorbar()
-
-    ImageListL = RotatedImageList[:,:,BottomY+PixelOffset:TopY-PixelOffset,LeftX+PixelOffset:MiddleX-PixelOffset]
-    ImageListR = RotatedImageList[:,:,BottomY+PixelOffset:TopY-PixelOffset,MiddleX+PixelOffset:RightX-PixelOffset]
-    return ImageListL,ImageListR
+    return np.array(ImageList),np.array(LambdaList),np.array(TimeList)
 
 #Reads the file with rotations for each date,time
-def ReadRotationFile(RotationPath):
+def ReadRotationFile(RotationFile):
 
-    DateList = []
     TimeList = []
     ImrAngleList = []
     HwpAngleList = []
 
-    File = open(RotationPath, "r")
-    for Row in File:
+    for Row in RotationFile:
         RowList = Row.split(" ") 
 
         TimeRow = RowList[1].split(":")
-        TimeList.append(timedelta(hours=float(TimeRow[0]),minutes=float(TimeRow[1]),seconds=float(TimeRow[2])))
-        DateList.append(RowList[0])
+        TimeList.append(timedelta(days=float(RowList[0][-2:]),hours=float(TimeRow[0]),minutes=float(TimeRow[1]),seconds=float(TimeRow[2])))
+
         ImrAngleList.append(float(RowList[2]))
         HwpAngleList.append(float(RowList[3][:-1]))#Also removes the /n on the end with the [:-1]
 
-    return np.array(DateList),np.array(TimeList),np.array(ImrAngleList),np.array(HwpAngleList)
+    return np.array(TimeList),np.array(ImrAngleList),np.array(HwpAngleList)
 
+
+
+#-/-ReadInFunctions-/-#
+
+#---OtherFunctions---#
 #Finds the index of the highest(closest to zero) negative number in a list
 def ArgMaxNegative(List):
     List = List*(List<=0) - List*(List>0)*1E6
     return np.argmax(List)
 
-#Finds the Imr,Hwp angles per image from the list of rotations over time
-def GetRotations(RotationDateList,RotationTimeList,RotationImrList,RotationHwpList,ImageDateList,ImageTimeList,MaxTimeDifference):
-
-    ImageImrList = [] #ImrAngle for each calibration image
-    ImageHwpList = [] #HwpAngle for each calibration image
-    BadImageList = [] #Boolean list of images without correct Imr,Hwp angles
-    for i in range(len(ImageDateList)):
-        ImageDate = ImageDateList[i]
-        ImageTime = ImageTimeList[i]
-        DeltaList = (RotationTimeList-ImageTime)/timedelta(seconds=1) #List of time differences in seconds
-        DeltaList = DeltaList*(ImageDate==RotationDateList)+1E6*(ImageDate!=RotationDateList) #Remove entries on incorrect day
-        TargetIndex = ArgMaxNegative(DeltaList)
-        if(np.abs(DeltaList[TargetIndex]) <= MaxTimeDifference):
-            BadImageList.append(False)
-            ImageImrList.append(RotationImrList[TargetIndex])
-            ImageHwpList.append(RotationHwpList[TargetIndex])
-        else:
-            BadImageList.append(True)
-
-    return np.array(ImageImrList),np.array(ImageHwpList),np.array(BadImageList)
-
-def FindDoubleDifference(HwpPlusTarget,HwpMinTarget,TotalHwpList,TotalImrList,ImageListL,ImageListR,LambdaNumber):
-
-    ImrList = []
-    DoubleDifferenceList = []
-    for i in range(len(TotalHwpList)):
-        if(TotalHwpList[i] == HwpPlusTarget):
-            for j in range(len(TotalHwpList)):
-                if(TotalHwpList[j] == HwpMinTarget and TotalImrList[i] == TotalImrList[j]):
-                    ThetaImr = TotalImrList[i]
-                    if(ThetaImr < 0):
-                        ThetaImr += 180
-                    ImrList.append(ThetaImr)
-                    PlusDifference = ImageListL[i]-ImageListR[i]
-                    MinDifference = ImageListL[j]-ImageListR[j]
-                    PlusSum = ImageListL[i]+ImageListR[i]
-                    MinSum = ImageListL[j]+ImageListR[j]
-                    DDImage = (PlusDifference - MinDifference) / (PlusSum+MinSum)
-                    DoubleDifference = np.mean(DDImage[LambdaNumber])
-                    DoubleDifferenceList.append(DoubleDifference)
-
-    return DoubleDifferenceList,ImrList
-
-def PlotDoubleDifference(HwpTargetList,TotalHwpList,TotalImrList,ImageListL,ImageListR,ColorList,Title,LambdaList,LambdaNumber):
-
-    #BB_H = SCExAO.BB_H_a #Matrix model
-    #FitDerList = np.linspace(-0.1*np.pi,0.6*np.pi,200)
-    #S_In = np.array([1,0.00948,0.000406,0])
-
-    plt.figure()   
-    plt.xticks(np.arange(37.5,135,7.5))
-    plt.xlim(left=43,right=129.50)
-    plt.ylim(bottom=-100,top=100)
-
-    plt.title(Title+"(Lambda="+str(int(LambdaList[0][LambdaNumber]))+"nm)")
-    plt.xlabel("IMR angle (degree)")
-    plt.ylabel("Normalized Stokes parameter (%)")
-
-    plt.axhline(y=0,color="black")
-        
-    for i in range(len(HwpTargetList)):
-            
-        #Plot measured data points
-        HwpTarget = HwpTargetList[i]
-        HwpPlusTarget = HwpTarget[0]
-        HwpMinTarget = HwpTarget[1]
-            
-        DDList,ImrList = FindDoubleDifference(HwpPlusTarget,HwpMinTarget,TotalHwpList,TotalImrList,ImageListL,ImageListR,LambdaNumber)
-
-        plt.scatter(ImrList,np.array(DDList)*100,label="HwpPlus = "+str(HwpPlusTarget),zorder=100,color=ColorList[i],s=18,edgecolors="black")
-
-         #Plot fitted curve
-         #ParmFitValueList = []
-        #for FitDer in FitDerList:
-        #    X_Matrix,I_Matrix = BB_H.ParameterMatrix(HwpPlusTarget*np.pi/180,HwpMinTarget*np.pi/180,FitDer,0,Polarizer)
-        #    X_Out = np.dot(X_Matrix,S_In)[0]
-        #    I_Out = np.dot(I_Matrix,S_In)[0]
-        #    X_Norm = X_Out/I_Out
-        #    ParmFitValueList.append(X_Norm)
-
-        #plt.plot(FitDerList*180/np.pi,np.array(ParmFitValueList)*100,color=ColorList[i])
-
-    plt.grid(linestyle="--")
-    plt.legend(fontsize=8)
-
-    plt.figure()
-
-#--/--Functions--/--#
+#-/-OtherFunctions-/-#
 
 #-----Parameters-----#
 
 #Path to calibration files
 PolPrefix = "C:/Users/Gebruiker/Desktop/BRP/SCExAO_Data/Calibration/cal_data_instrumental_pol_model/cal_data_pol_source/CRSA000"
 UnpolPrefix = "C:/Users/Gebruiker/Desktop/BRP/SCExAO_Data/Calibration/cal_data_instrumental_pol_model/cal_data_unpol_source/CRSA000"
-RotationPath = "C:/Users/Gebruiker/Desktop\BRP/SCExAO_Data/Calibration/cal_data_instrumental_pol_model/RotationsChanged.txt"
+RotationPath = "C:/Users/Gebruiker/Desktop/BRP/SCExAO_Data/Calibration/cal_data_instrumental_pol_model/RotationsChanged.txt"
 
 #Positions in rotated image
 ImageAngle = 27
@@ -193,56 +260,22 @@ LambdaNumber = 0
 
 #-----Main-----#
 
-print("#-----ReadingPolData-----#")
-PolImageList,PolLambdaList,PolDateList,PolTimeList = ReadCalibrationFile(PolPrefix,PolNumberList)
+#Get the file with rotations over time
+RotationFile = open(RotationPath, "r")
 
-print("#-----ReadingUnpolData-----#")
-UnpolImageList,UnpolLambdaList,UnpolDateList,UnpolTimeList = ReadCalibrationFile(UnpolPrefix,UnpolNumberList)
+#Get the polarized calibration images
+PolFileList = []
+for PolNumber in PolNumberList:
+    PolPath = PolPrefix + str(PolNumber) + "_cube.fits"
+    PolFile = fits.open(PolPath)
+    PolFileList.append(PolFile)
 
-print("#-----ReadingRotationFile-----#")
-RotationDateList,RotationTimeList,RotationImrList,RotationHwpList = ReadRotationFile(RotationPath)
-
-print("#-----FindPolRotations-----#")
-PolImrList,PolHwpList,PolBadImageList = GetRotations(RotationDateList,RotationTimeList,RotationImrList,RotationHwpList,PolDateList,PolTimeList,MaxTimeDifference)
-PolImageList = PolImageList[PolBadImageList==False]
-PolLambdaList = PolLambdaList[PolBadImageList==False]
-
-print("#-----FindUnpolRotations-----#")
-UnpolImrList,UnpolHwpList,UnpolBadImageList = GetRotations(RotationDateList,RotationTimeList,RotationImrList,RotationHwpList,UnpolDateList,UnpolTimeList,MaxTimeDifference)
-UnpolImageList = UnpolImageList[UnpolBadImageList==False]
-UnpolLambdaList = UnpolLambdaList[UnpolBadImageList==False]
-
-#plt.figure()
-#plt.imshow(PolImageList[0][0],vmin=500,vmax=1.5E3,cmap="gist_gray")
-#plt.xlabel("x(pixels)")
-#plt.ylabel("y(pixels)")
-#plt.colorbar()
-
-print("#-----SplitPolImages-----#")
-PolImageListL,PolImageListR = SplitCalibrationImages(PolImageList,ImageAngle,LeftX,RightX,BottomY,TopY,MiddleX,PixelOffset)
-
-#plt.figure()
-#plt.imshow(PolImageListL[0][0],vmin=500,vmax=1.5E3,cmap="gist_gray")
-#plt.xlabel("x(pixels)")
-#plt.ylabel("y(pixels)")
-#plt.colorbar()
-
-#plt.figure()
-#plt.imshow(PolImageListR[0][0],vmin=500,vmax=1.5E3,cmap="gist_gray")
-#plt.xlabel("x(pixels)")
-#plt.ylabel("y(pixels)")
-#plt.colorbar()
-
-#print("#-----SplitUnpolImages-----#")
-#UnpolImageListL,UnpolImageListR = SplitCalibrationImages(UnpolImageList,ImageAngle,LeftX,RightX,BottomY,TopY,MiddleX,PixelOffset)
-
-#print("#-----PlotPolDoubleDifference-----#")
-#PlotDoubleDifference(HwpTargetList,PolHwpList,PolImrList,PolImageListL,PolImageListR,ColorList,"Stokes parameters for polarized calibration data",PolLambdaList,LambdaNumber)
-
-#print("#-----PlotUnpolDoubleDifference-----#")
-#PlotDoubleDifference(HwpTargetList,UnpolHwpList,UnpolImrList,UnpolImageListL,UnpolImageListR,ColorList,"Stokes parameters for unpolarized calibration data",PolLambdaList,LambdaNumber)
+SCExAO_CalibrationObject = SCExAO_Calibration(PolFileList,RotationFile)
+SCExAO_CalibrationObject.RunCalibration()
 
 plt.show()
+
+
 #--/--Main--/--#
 
 
